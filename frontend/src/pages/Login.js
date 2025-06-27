@@ -30,10 +30,14 @@ const Login = () => {
       localStorage.setItem('user', JSON.stringify(res.data.user));
       localStorage.setItem('justLoggedIn', 'true');
       alert("Login successful!");
-      navigate('/');
+      navigate('/products');
     } catch (err) {
       setError(err.response?.data?.msg || "Login failed. Please try again.");
     }
+    if (!localStorage.getItem('memberSince')) {
+      localStorage.setItem('memberSince', new Date().toISOString());
+    }
+
   };
 
   return (

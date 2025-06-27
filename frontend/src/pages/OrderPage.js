@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Paper, Divider } from '@mui/material';
-
+import MainLayout from '../components/MainLayout';
 const OrderPage = () => {
   const [orders, setOrders] = useState([]);
   const user = JSON.parse(localStorage.getItem('user'));
@@ -12,6 +12,7 @@ const OrderPage = () => {
   }, [user]);
 
   return (
+    <MainLayout>
     <Box sx={{ maxWidth: 800, mx: 'auto', mt: 5 }}>
       <Typography variant="h5" fontWeight={600} mb={3}>
         📦 Your Previous Orders
@@ -38,6 +39,7 @@ const OrderPage = () => {
         ))
       )}
     </Box>
+    </MainLayout>
   );
 };
 

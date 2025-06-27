@@ -11,7 +11,9 @@ import ResetPassword from './pages/ResetPassword';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderPage from './pages/OrderPage';
 import ThankYouPage from './pages/ThankYouPage';
-
+import ProfilePage from './pages/ProfilePage';
+import CustomerSupport from './pages/CustomerSupport';
+import SettingsPage from './pages/SettingsPage';
 
 
 
@@ -77,6 +79,32 @@ function App() {
           </PrivateRoute>
         }
       />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <ProfilePage />
+            </PrivateRoute>
+          }
+        />
+        
+        <Route
+          path="/support"
+          element={
+            <PrivateRoute>
+              <CustomerSupport />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <PrivateRoute>
+              <SettingsPage />
+            </PrivateRoute>
+          }
+        />
       </Routes>
     </Router>
   );

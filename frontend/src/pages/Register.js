@@ -25,6 +25,9 @@ const Register = () => {
     e.preventDefault();
     setError('');
 
+    localStorage.setItem('memberSince', new Date().toISOString());
+
+
     if (formData.password !== formData.confirmPassword) {
       return setError("Passwords do not match");
     }

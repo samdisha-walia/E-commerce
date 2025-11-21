@@ -41,7 +41,7 @@ const LanguageSwitcher = ({ theme = 'dark' }) => {
           fontWeight: 'bold',
           fontSize: '0.9rem',
           boxShadow: isDark ? 'none' : '0 2px 6px rgba(0,0,0,0.1)',
-          transition: 'all 0.3s ease',
+          //transition: 'all 0.3s ease',
 
           '&:hover': {
             backgroundColor: isDark ? '#333' : 'rgba(255,255,255,0.8)',

@@ -8,7 +8,7 @@ const { saveOrder,
 const { protect } = require('../middleware/auth');
 
 router.post('/send-receipt', sendOrderReceipt); // Public route
-router.post('/save', protect, saveOrder);           // Save order
+router.post('/', protect, saveOrder);           // Save order
 router.get('/', protect, getUserOrders); // Get user's orders
 
 

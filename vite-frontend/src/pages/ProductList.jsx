@@ -1,277 +1,328 @@
-// src/pages/ProductList.jsx
-
-import React, { useState, useEffect, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  Drawer, List, ListItem, ListItemIcon, ListItemText, Typography,
-  IconButton, Toolbar, AppBar, Box, Divider, Snackbar, Alert, Badge
-} from '@mui/material';
+  AppBar, Toolbar, IconButton, Typography, Box, Drawer, List, ListItemButton,
+  ListItemIcon, ListItemText, Divider, Badge, Snackbar, Alert, Slide, useTheme
+} from "@mui/material";
 import {
-  Menu as MenuIcon, AccountCircle as AccountCircleIcon, History as HistoryIcon,
-  SupportAgent as SupportAgentIcon, Settings as SettingsIcon, Logout as LogoutIcon,
-  ShoppingCart as ShoppingCartIcon, Home as HomeIcon
-} from '@mui/icons-material';
-import ListItemButton from '@mui/material/ListItemButton';
-import { motion } from 'framer-motion';
-import productsData from '../data/products';
-import { CartContext } from '../context/CartContext';
-import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '../components/LanguageSwitcher';
-import Tilt from 'react-parallax-tilt';
-import Slide from '@mui/material/Slide';
+  Menu as MenuIcon, Home as HomeIcon, ShoppingCart as ShoppingCartIcon,
+  AccountCircle as AccountCircleIcon, History as HistoryIcon,
+  SupportAgent as SupportAgentIcon, Settings as SettingsIcon, Logout as LogoutIcon
+} from "@mui/icons-material";
+import { motion } from "framer-motion";
+import Tilt from "react-parallax-tilt";
+import { CartContext } from "../context/CartContext";
+import productsData from "../data/products";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import ThemeToggle from "../components/ThemeToggle";
 
-
-const drawerWidth = 240;
+const drawerWidth = 250;
 
 const ProductList = () => {
   const { t } = useTranslation();
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('All');
+  const { addToCart, cartItems } = useContext(CartContext);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
   const [showWelcome, setShowWelcome] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
-
-  const { addToCart, cartItems } = useContext(CartContext);
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user'));
+  const theme = useTheme();
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  const isDark = theme.palette.mode === "dark";
 
   useEffect(() => {
-    if (localStorage.getItem('justLoggedIn') === 'true') {
+    if (localStorage.getItem("justLoggedIn") === "true") {
       setShowWelcome(true);
-      localStorage.removeItem('justLoggedIn');
+      localStorage.removeItem("justLoggedIn");
       setTimeout(() => setShowWelcome(false), 4000);
     }
   }, []);
 
-  const toggleDrawer = () => setDrawerOpen(!drawerOpen);
-
-  const handleDrawerAction = (action) => {
-    const paths = {
-      profile: '/profile',
-      orders: '/orders',
-      support: '/support',
-      settings: '/settings',
-      logout: '/login',
-    };
-    if (action === 'logout') {
-      localStorage.clear();
-    }
-    if (paths[action]) navigate(paths[action]);
-  };
-
   const handleAddToCart = (product) => {
     addToCart(product);
     setShowAlert(true);
-    setTimeout(() => setShowAlert(false), 3000);
+    setTimeout(() => setShowAlert(false), 2500);
   };
 
-  const filteredProducts = productsData.filter(product =>
-    (category === 'All' || product.category === category) &&
-    product.name.toLowerCase().includes(search.toLowerCase())
+  const filteredProducts = productsData.filter(
+    (p) =>
+      (category === "All" || p.category === category) &&
+      p.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <Box sx={{ display: 'flex', bgcolor: '#f9f9f9', minHeight: '100vh' }}>
-      {/* ✅ Snackbar Alerts */}
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: theme.palette.background.default,
+        color: theme.palette.text.primary,
+        transition: "background 0.4s ease, color 0.4s ease",
+      }}
+    >
+      {/* 🎉 Alerts */}
       <Snackbar
         open={showWelcome}
         autoHideDuration={4000}
         onClose={() => setShowWelcome(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
         TransitionComponent={(props) => <Slide {...props} direction="down" />}
       >
-        <Alert severity="success" sx={{ width: '100%' }}>
-          🎉 {t('welcome')}, {user?.name}!
+        <Alert severity="success" sx={{ width: "100%" }}>
+          ✨ Welcome, {user?.name}!
         </Alert>
       </Snackbar>
+
       <Snackbar
         open={showAlert}
         onClose={() => setShowAlert(false)}
         autoHideDuration={3000}
         TransitionComponent={(props) => <Slide {...props} direction="down" />}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert severity="success" variant="filled">
-          🛒 Added to cart!
+          ✅ Added to cart!
         </Alert>
       </Snackbar>
 
-      {/* ✅ Top Navbar */}
+      {/* 🌟 AppBar */}
       <AppBar
         position="fixed"
         sx={{
-          background: 'rgba(255,255,255,0.85)',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-          color: '#000',
-          zIndex: (theme) => theme.zIndex.drawer + 1,
+          background: isDark
+            ? "rgba(25, 25, 25, 0.7)"
+            : "rgba(255,255,255,0.8)",
+          backdropFilter: "blur(15px)",
+          color: theme.palette.text.primary,
+          boxShadow: isDark
+            ? "0 1px 15px rgba(255,255,255,0.05)"
+            : "0 1px 20px rgba(0,0,0,0.05)",
+          transition: "background 0.4s ease, color 0.3s ease",
         }}
       >
-        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <IconButton color="inherit" edge="start" onClick={toggleDrawer}>
+        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+          <IconButton color="inherit" onClick={() => setDrawerOpen(!drawerOpen)}>
             <MenuIcon />
           </IconButton>
 
           <Typography
-            onClick={() => navigate('/products')}
+            onClick={() => navigate("/products")}
             sx={{
-              fontWeight: 600,
-              fontSize: '1.5rem',
-              cursor: 'pointer',
-              userSelect: 'none',
-              fontFamily: 'SF Pro Display, sans-serif',
+              fontWeight: 700,
+              fontSize: "1.6rem",
+              fontFamily: "Inter, sans-serif",
+              cursor: "pointer",
+              letterSpacing: "-0.5px",
+              color: theme.palette.text.primary,
             }}
           >
-            🛍️ Shop-Top
+            Shop<span style={{ color: isDark ? "#aaa" : "#888" }}>Top</span>
           </Typography>
 
-          <Box sx={{ display: 'flex',color: '#000', alignItems: 'center', gap: 2 }}>
-            <LanguageSwitcher theme="light"/>
-            <Link to="/cart" style={{ color: '#000', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <ThemeToggle />
+            <LanguageSwitcher theme={isDark ? "dark" : "light"} />
+            <Link
+              to="/cart"
+              style={{
+                textDecoration: "none",
+                color: theme.palette.text.primary,
+              }}
+            >
               <Badge badgeContent={cartItems?.length || 0} color="error">
                 <ShoppingCartIcon />
               </Badge>
-              {t('cart')}
             </Link>
           </Box>
         </Toolbar>
       </AppBar>
 
-      {/* ✅ Drawer Menu */}
+      {/* 🧭 Drawer */}
       <Drawer
-        variant="persistent"
         anchor="left"
         open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
         sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
+          "& .MuiDrawer-paper": {
             width: drawerWidth,
-            boxSizing: 'border-box',
-            top: '64px',
-            background: '#fff',
-            boxShadow: '2px 0 6px rgba(0,0,0,0.05)'
-          }
+            backdropFilter: "blur(12px)",
+            background: isDark
+              ? "rgba(25,25,25,0.85)"
+              : "rgba(255,255,255,0.85)",
+            color: theme.palette.text.primary,
+            boxShadow: isDark
+              ? "2px 0 15px rgba(255,255,255,0.08)"
+              : "2px 0 15px rgba(0,0,0,0.05)",
+            transition: "background 0.4s ease, color 0.4s ease",
+          },
         }}
       >
-        <Divider />
+        <Divider sx={{ mt: 8, borderColor: isDark ? "#333" : "#ddd" }} />
         <List>
-          <ListItem disablePadding><ListItemButton onClick={() => navigate('/products')}><ListItemIcon><HomeIcon /></ListItemIcon><ListItemText primary="Home" /></ListItemButton></ListItem>
-          <ListItem disablePadding><ListItemButton onClick={() => handleDrawerAction('profile')}><ListItemIcon><AccountCircleIcon /></ListItemIcon><ListItemText primary={t('profile')} /></ListItemButton></ListItem>
-          <ListItem disablePadding><ListItemButton onClick={() => handleDrawerAction('orders')}><ListItemIcon><HistoryIcon /></ListItemIcon><ListItemText primary={t('orders')} /></ListItemButton></ListItem>
-          <ListItem disablePadding><ListItemButton onClick={() => handleDrawerAction('support')}><ListItemIcon><SupportAgentIcon /></ListItemIcon><ListItemText primary={t('support')} /></ListItemButton></ListItem>
-          <ListItem disablePadding><ListItemButton onClick={() => handleDrawerAction('settings')}><ListItemIcon><SettingsIcon /></ListItemIcon><ListItemText primary={t('settings')} /></ListItemButton></ListItem>
-        </List>
-        <Divider />
-        <List>
-          <ListItem disablePadding><ListItemButton onClick={() => handleDrawerAction('logout')}><ListItemIcon><LogoutIcon /></ListItemIcon><ListItemText primary={t('logout')} /></ListItemButton></ListItem>
+          {[{ icon: <HomeIcon />, text: "Home", path: "/products" },
+          { icon: <AccountCircleIcon />, text: "Profile", path: "/profile" },
+          { icon: <HistoryIcon />, text: "Orders", path: "/orders" },
+          { icon: <SupportAgentIcon />, text: "Support", path: "/support" },
+          { icon: <SettingsIcon />, text: "Settings", path: "/settings" },
+          ].map((item) => (
+            <ListItemButton key={item.text} onClick={() => navigate(item.path)}>
+              <ListItemIcon sx={{ color: theme.palette.text.primary }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          ))}
+          <Divider sx={{ borderColor: isDark ? "#333" : "#ddd" }} />
+          <ListItemButton onClick={() => navigate("/login")}>
+            <ListItemIcon sx={{ color: theme.palette.text.primary }}>
+              <LogoutIcon />
+            </ListItemIcon>
+            <ListItemText primary="Logout" />
+          </ListItemButton>
         </List>
       </Drawer>
 
-      {/* ✅ Main Content */}
-      <Box component="main" sx={{ flexGrow: 1, px: 6, pt: 12, pb: 4 }}>
+      {/* 🛍 Product Grid */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          px: 6,
+          pt: 12,
+          transition: "background 0.4s ease, color 0.4s ease",
+        }}
+      >
         <Typography
           variant="h4"
           align="center"
-          sx={{ fontWeight: 700, mb: 4, color: '#1a1a1a' }}
+          sx={{
+            fontWeight: 700,
+            mb: 4,
+            fontFamily: "Inter, sans-serif",
+            color: theme.palette.text.primary,
+          }}
         >
-          {t('exploreProducts')}
+          Discover our Premium Collection
         </Typography>
 
-        <Box sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 2,
-          mb: 4,
-          flexWrap: 'wrap'
-        }}>
+        {/* 🔍 Filters */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 2,
+            mb: 4,
+            flexWrap: "wrap",
+          }}
+        >
           <input
-            type="text"
-            placeholder={t('searchPlaceholder')}
+            placeholder="Search products..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
-              padding: '12px 16px',
-              border: '1px solid #ddd',
-              borderRadius: '12px',
-              fontSize: '1rem',
-              width: '220px',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
+              padding: "12px 18px",
+              borderRadius: "14px",
+              border: `1px solid ${isDark ? "#444" : "#ddd"}`,
+              fontSize: "1rem",
+              width: "220px",
+              background: isDark ? "#1c1c1c" : "#fff",
+              color: theme.palette.text.primary,
+              boxShadow: isDark
+                ? "0 2px 10px rgba(255,255,255,0.04)"
+                : "0 2px 10px rgba(0,0,0,0.03)",
+              transition: "background 0.4s ease, color 0.4s ease",
             }}
           />
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             style={{
-              padding: '12px 16px',
-              border: '1px solid #ddd',
-              borderRadius: '12px',
-              fontSize: '1rem',
-              background: '#fff',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
+              padding: "12px 18px",
+              borderRadius: "14px",
+              border: `1px solid ${isDark ? "#444" : "#ddd"}`,
+              fontSize: "1rem",
+              background: isDark ? "#1c1c1c" : "#fff",
+              color: theme.palette.text.primary,
+              boxShadow: isDark
+                ? "0 2px 10px rgba(255,255,255,0.04)"
+                : "0 2px 10px rgba(0,0,0,0.03)",
+              transition: "background 0.4s ease, color 0.4s ease",
             }}
           >
-            <option value="All">{t('allCategories')}</option>
-            <option value="Clothing">{t('clothing')}</option>
-            <option value="Electronics">{t('electronics')}</option>
-            <option value="Footwear">{t('footwear')}</option>
+            <option value="All">All Categories</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Footwear">Footwear</option>
+            
           </select>
         </Box>
 
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-          gap: 4
-        }}>
-          {filteredProducts.map(product => (
-            <Tilt key={product.id} glareEnable={true} glareMaxOpacity={0.3} scale={1.02} transitionSpeed={250}>
-            <motion.div
-              
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: 'spring', stiffness: 200 }}
-              style={{
-                background: '#fff',
-                padding: '1.5rem',
-                borderRadius: '1.25rem',
-                boxShadow: '0 5px 20px rgba(0,0,0,0.05)',
-                textAlign: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <img
-                src={product.image}
-                alt={product.name}
+        {/* 🧩 Product Cards */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))",
+            gap: 4,
+          }}
+        >
+          {filteredProducts.map((product) => (
+            <Tilt key={product.id} glareEnable glareMaxOpacity={0.2} scale={1.02}>
+              <motion.div
+                whileHover={{ scale: 1.03 }}
+                transition={{ duration: 0.3 }}
                 style={{
-                  width: '100%',
-                  height: '180px',
-                  objectFit: 'cover',
-                  borderRadius: '1rem',
-                  marginBottom: '1rem',
+                  background: isDark
+                    ? "linear-gradient(145deg, #1e1e1e, #252525)"
+                    : "linear-gradient(145deg, #fff, #f5f5f5)",
+                  borderRadius: "1.25rem",
+                  padding: "1.6rem",
+                  textAlign: "center",
+                  boxShadow: isDark
+                    ? "0 8px 18px rgba(255,255,255,0.05)"
+                    : "0 8px 20px rgba(0,0,0,0.05)",
+                  color: theme.palette.text.primary,
+                  transition: "background 0.4s ease, color 0.4s ease",
                 }}
-              />
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                {product.name}
-              </Typography>
-              <Typography variant="body1" sx={{ color: '#555', mb: 2 }}>
-                ₹{product.price}
-              </Typography>
-              <button
-                onClick={() => handleAddToCart(product)}
-                style={{
-                  background: '#000',
-                  color: '#fff',
-                  padding: '10px 20px',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                }}
-                onMouseOver={(e) => (e.currentTarget.style.background = '#444')}
-                onMouseOut={(e) => (e.currentTarget.style.background = '#000')}
               >
-                {t('addToCart')}
-              </button>
-            </motion.div>
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  style={{
+                    width: "100%",
+                    height: "200px",
+                    objectFit: "cover",
+                    borderRadius: "1rem",
+                    marginBottom: "1rem",
+                  }}
+                />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  {product.name}
+                </Typography>
+                <Typography sx={{ opacity: 0.8, mb: 2 }}>
+                  ₹{product.price}
+                </Typography>
+                <motion.button
+                  onClick={() => handleAddToCart(product)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  style={{
+                    background: isDark ? "#fff" : "#111",
+                    color: isDark ? "#000" : "#fff",
+                    border: "none",
+                    borderRadius: "10px",
+                    padding: "10px 20px",
+                    cursor: "pointer",
+                    fontWeight: 500,
+                    fontSize: "0.95rem",
+                    transition: "background 0.4s ease, color 0.4s ease",
+                  }}
+                >
+                  Add to Cart
+                </motion.button>
+              </motion.div>
             </Tilt>
           ))}
         </Box>

@@ -1,45 +1,42 @@
-// src/context/ThemeContext.js
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useMemo, useContext } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
 
-export const ThemeContext = createContext();
+const ThemeModeContext = createContext();
 
-const lightTheme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: { main: '#1976d2' },
-    background: { default: '#f5f5f5' },
-  },
-});
+export const useThemeMode = () => useContext(ThemeModeContext);
 
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-    background: { default: '#121212' },
-  },
-});
+export const ThemeModeProvider = ({ children }) => {
+  const [mode, setMode] = useState(localStorage.getItem('themeMode') || 'light');
 
-export const CustomThemeProvider = ({ children }) => {
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('darkMode') === 'true';
-    setDarkMode(saved);
-  }, []);
-
-  const toggleTheme = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem('darkMode', newMode);
+  const toggleMode = () => {
+    const newMode = mode === 'light' ? 'dark' : 'light';
+    setMode(newMode);
+    localStorage.setItem('themeMode', newMode);
   };
 
+  const theme = useMemo(() => createTheme({
+    palette: {
+      mode,
+      primary: {
+        main: mode === 'light' ? '#0071e3' : '#0a84ff', // Apple blue tone
+      },
+      background: {
+        default: mode === 'light' ? '#f9fbfd' : '#0c0c0c',
+        paper: mode === 'light' ? '#ffffff' : '#1a1a1a',
+      },
+      text: {
+        primary: mode === 'light' ? '#000000' : '#f5f5f5',
+        secondary: mode === 'light' ? '#555' : '#aaa',
+      },
+    },
+    typography: {
+      fontFamily: '"SF Pro Display", "Poppins", sans-serif',
+    },
+  }), [mode]);
+
   return (
-    <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
-      <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
-        <CssBaseline />
-        {children}
-      </ThemeProvider>
-    </ThemeContext.Provider>
+    <ThemeModeContext.Provider value={{ mode, toggleMode }}>
+      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+    </ThemeModeContext.Provider>
   );
 };

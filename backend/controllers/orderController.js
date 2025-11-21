@@ -7,26 +7,58 @@ const Order = require('../models/Order');
 
 // Save new order to DB
 exports.saveOrder = async (req, res) => {
-  console.log("💥 saveOrder hit!");
-  console.log("🛒 Order Payload:", req.body);
-  console.log("👤 User from token:", req.user);
   try {
-    const { items, totalAmount, address, paymentStatus } = req.body;
-    const userId = req.user.id;
+    const {
+      items,
+      totalAmount,
+      discountAmount = 0,
+      couponCode = null,
+      shippingFee = 0,
+      address = '',
+      paymentStatus = 'Pending',
+      paymentId = null,
+      orderedAt = null,
+    } = req.body || {};
+
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ message: 'Order items are required.' });
+    }
+
+    if (typeof totalAmount !== 'number' || totalAmount <= 0) {
+      return res.status(400).json({ message: 'Total amount must be greater than zero.' });
+    }
+
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const normalizedItems = items.map((item) => ({
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      image: item.image,
+      productId: item.productId || item.id || item._id || null,
+    }));
 
     const newOrder = new Order({
       user: userId,
-      items: order.items,
-      totalAmount: order.total,
-      address: order.address,
-      paymentStatus: order.paymentStatus,
+      items: normalizedItems,
+      totalAmount,
+      discountAmount,
+      couponCode,
+      shippingFee,
+      address,
+      paymentStatus,
+      paymentId,
+      orderedAt,
     });
 
     await newOrder.save();
-    res.status(201).json({ message: "Order saved successfully" });
+    res.status(201).json({ message: 'Order saved successfully', order: newOrder });
   } catch (error) {
-    console.error("❌ Error saving order:", error);
-    res.status(500).json({ message: "Failed to save order" });
+    console.error('❌ Error saving order:', error);
+    res.status(500).json({ message: 'Failed to save order' });
   }
 };
 
@@ -46,6 +78,23 @@ exports.getUserOrders = async (req, res) => {
 exports.sendOrderReceipt = async (req, res) => {
   try {
     const { order, user } = req.body;
+
+    const formatCurrency = (value = 0) =>
+      `₹${Number(value || 0).toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+
+    const resolveDate = () => {
+      const raw = order?.orderedAt || order?.date || Date.now();
+      const dateObj = new Date(raw);
+      if (Number.isNaN(dateObj.getTime())) {
+        return new Date();
+      }
+      return dateObj;
+    };
+
+    const orderDate = resolveDate();
 
     const doc = new PDFDocument();
     const buffers = [];
@@ -81,11 +130,17 @@ exports.sendOrderReceipt = async (req, res) => {
     });
 
     // === 🧾 Generate PDF content ===
-    doc.fontSize(20).text('🧾 Shop-Top Receipt', { align: 'center' });
+    doc.fontSize(20).text('Shop-Top Receipt', { align: 'center' });
     doc.moveDown();
 
     doc.fontSize(12);
-    doc.text(`Date: ${new Date(order.date).toLocaleDateString()}`);
+    doc.text(`Date: ${orderDate.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })}`);
     doc.text(`Receipt #: ${Math.floor(100000 + Math.random() * 900000)}`);
     doc.moveDown();
 
@@ -94,18 +149,33 @@ exports.sendOrderReceipt = async (req, res) => {
     doc.text(`Address: ${order.address || 'No address provided'}`);
     doc.moveDown();
 
-    doc.text('📦 Order Items:', { underline: true });
+    doc.text('Order Items:', { underline: true });
     order.items.forEach((item, idx) => {
-      doc.text(`${idx + 1}. ${item.name} × ${item.quantity} — ₹${item.price * item.quantity}`);
+      const lineTotal = Number(item.price || 0) * Number(item.quantity || 0);
+      doc.text(`${idx + 1}. ${item.name} × ${item.quantity} — ${formatCurrency(lineTotal)}`);
     });
+
+    const totalAmount = Number(order.total ?? order.totalAmount ?? 0);
+    const isPaid = (order.paymentStatus || '').toLowerCase() === 'paid';
+    const paidAmount = isPaid ? totalAmount : 0;
+    const paymentMode = order.paymentMode || (order.paymentId ? 'Razorpay' : 'Pay on Delivery');
+    const discountAmount = Number(order.discountAmount || 0);
+    const shippingFee = Number(order.shippingFee || 0);
 
     doc.moveDown();
     doc.font('Helvetica-Bold');
-
-    doc.font('Helvetica-Bold').text(`Total Paid: ₹${order.paymentStatus === 'Paid' ? order.total.toFixed(2) : '0.00'}`);
+    doc.text(`Subtotal: ${formatCurrency(totalAmount + discountAmount - shippingFee)}`);
+    if (discountAmount > 0) {
+      doc.text(`Discount (${order.couponCode || 'Coupon'}): -${formatCurrency(discountAmount)}`);
+    }
+    if (shippingFee > 0) {
+      doc.text(`Shipping: ${formatCurrency(shippingFee)}`);
+    }
+    doc.text(`Total Amount: ${formatCurrency(totalAmount)}`);
+    doc.text(`Amount Paid: ${formatCurrency(paidAmount)}`);
     doc.font('Helvetica').moveDown();
-    doc.text(`Payment Status: ${order.paymentStatus}`);
-    doc.text(`Payment Mode: ${order.paymentStatus === 'Paid' ? 'Razorpay' : 'Pay on Delivery'}`);
+    doc.text(`Payment Status: ${order.paymentStatus || 'Pending'}`);
+    doc.text(`Payment Mode: ${paymentMode}`);
     doc.moveDown().text('Thank you for shopping with us!');
 
 

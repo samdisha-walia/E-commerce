@@ -1,3 +1,4 @@
+// vite-frontend/src/pages/ResetPassword.jsx
 import React, { useState } from 'react';
 import {
   Box, Button, TextField, Typography, Alert, Paper,
@@ -36,7 +37,7 @@ const ResetPassword = () => {
     }
 
     try {
-      const res = await axios.post(`http://localhost:5000/api/reset-password/${token}`, { password });
+      const res = await axios.post(`http://localhost:5000/api/auth/reset-password/${token}`, { password });
       setMessage(res.data.msg || "Password reset successful!");
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {

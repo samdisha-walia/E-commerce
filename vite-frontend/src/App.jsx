@@ -16,6 +16,8 @@ import ThankYouPage from './pages/ThankYouPage';
 import ProfilePage from './pages/ProfilePage';
 import CustomerSupport from './pages/CustomerSupport';
 import SettingsPage from './pages/SettingsPage';
+import AdminDashboard from './pages/AdminDashboard';
+import ChatBot from './components/ChatBot';
 
 
 
@@ -107,7 +109,16 @@ function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute requireAdmin>
+              <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
       </Routes>
+      <ChatBot />
     </Router>
   );
 }

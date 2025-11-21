@@ -11,3 +11,4 @@ export default defineConfig({
     },
   },
 })
+//VITE_RAZORPAY_KEY=rzp_test_Rdh7skjoa7zZVc

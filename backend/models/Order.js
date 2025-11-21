@@ -9,11 +9,17 @@ const orderSchema = new mongoose.Schema({
       name: String,
       price: Number,
       quantity: Number,
+      image: String,
+      productId: String,
     },
   ],
-  totalAmount: Number,
-  address: String,
-  paymentStatus: String,
+  totalAmount: { type: Number, required: true },
+  discountAmount: { type: Number, default: 0 },
+  couponCode: { type: String, default: null },
+  shippingFee: { type: Number, default: 0 },
+  address: { type: String, default: '' },
+  paymentStatus: { type: String, default: 'Pending' },
+  paymentId: { type: String, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

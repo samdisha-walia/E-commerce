@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   avatar: String, // base64 or image URL
   memberSince: { type: Date, default: Date.now },
+  role: { type: String, enum: ['customer', 'admin'], default: 'customer' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

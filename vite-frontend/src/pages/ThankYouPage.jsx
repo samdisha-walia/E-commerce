@@ -1,54 +1,87 @@
 //src/pages/ThankYouPage.jsx
 
-import React, { useEffect, useState } from 'react';
-import {
-  Box, Typography, Paper, Divider, Button
-} from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Box, Typography, Paper, Divider, Button, Chip, CircularProgress } from '@mui/material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import DescriptionIcon from '@mui/icons-material/Description';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 
 const ThankYouPage = () => {
   const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const user = JSON.parse(localStorage.getItem('user'));
+  const apiBaseUrl = useMemo(() => {
+    const base = import.meta.env.VITE_API_URL?.replace(/\/$/, '');
+    return base || 'http://localhost:5000';
+  }, []);
+
+  const formatCurrency = (value = 0) =>
+    `₹${Number(value || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
+  const resolvePaymentMode = (payload) =>
+    payload?.paymentMode || (payload?.paymentId ? 'Razorpay' : 'Pay on Delivery');
+
+  const resolveAmountPaid = (payload) =>
+    (payload?.paymentStatus || '').toLowerCase() === 'paid' ? payload?.totalAmount || payload?.total || 0 : 0;
 
   useEffect(() => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (!user) return;
+    const fetchLatestOrder = async () => {
+      if (!user) {
+        setError('Please log in to view your latest order.');
+        setLoading(false);
+        return;
+      }
 
-  const allOrders = JSON.parse(localStorage.getItem('orders')) || {};
-  const userOrders = allOrders[user.email] || [];
-  const latestOrder = userOrders[userOrders.length - 1];
-  setOrder(latestOrder);
-}, []);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Your session has expired. Please log in again.');
+        setLoading(false);
+        return;
+      }
 
+      try {
+        const { data } = await axios.get(`${apiBaseUrl}/api/orders`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-  if (!order) {
-    return <Typography mt={10} textAlign="center">No recent order found.</Typography>;
-  }
+        const latestOrder = data.orders?.[0] || null;
+        setOrder(latestOrder);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to fetch your recent order.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLatestOrder();
+  }, [apiBaseUrl, user]);
+
+  const orderDate = order
+    ? new Date(order.orderedAt || order.createdAt || Date.now()).toLocaleString()
+    : null;
+  const amountPaid = order ? resolveAmountPaid(order) : 0;
+  const paymentMode = order ? resolvePaymentMode(order) : 'Pay on Delivery';
+  const discountAmount = Number(order?.discountAmount || 0);
+  const shippingFee = Number(order?.shippingFee || 0);
 
   const generatePDF = () => {
-    if (!user?.email) return;
+    if (!order || !user?.email) return;
 
-    const orders = JSON.parse(localStorage.getItem('orders'));
-    const userOrders = orders[user.email] || [];
-    const latestOrder = userOrders.length ? userOrders[userOrders.length - 1] : null;
-
-    if (!latestOrder) {
-      alert("No recent order found.");
-      return;
-    }
-
-    const address = latestOrder?.address || 'No address provided';
+    const address = order?.address || 'No address provided';
     const doc = new jsPDF();
 
     doc.setFontSize(22);
-    doc.text('Receipt', 160, 20);
+    doc.text('Shop-Top Receipt', 14, 20);
     doc.setFontSize(10);
-    doc.text(`DATE: ${new Date(latestOrder.date).toLocaleDateString()}`, 160, 28);
-    doc.text(`Receipt #: ${Math.floor(Math.random() * 1000)}`, 160, 34);
+    doc.text(`DATE: ${orderDate}`, 14, 28);
+    doc.text(`Receipt #: ${Math.floor(100000 + Math.random() * 900000)}`, 14, 34);
 
     const toBlock = doc.splitTextToSize(`${user.name}\n${user.email}\n${address}`, 80);
     const fromBlock = ['Shop-Top', 'support@shop-top.com', 'India'];
@@ -68,7 +101,7 @@ const ThankYouPage = () => {
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 10,
       head: [['Item Description', 'Qty', 'Price', 'Amount']],
-      body: latestOrder.items.map(item => [
+      body: order.items.map(item => [
         item.name,
         item.quantity,
         `₹${item.price}`,
@@ -76,14 +109,54 @@ const ThankYouPage = () => {
       ]),
     });
 
-    doc.text(`Total Paid: ₹${latestOrder.total.toFixed(2)}`, 10, doc.lastAutoTable.finalY + 10);
-    doc.text(`Payment Mode: ${latestOrder.paymentStatus === 'Paid' ? 'Razorpay' : 'Pay on Delivery'}`, 10, doc.lastAutoTable.finalY + 20);
-    doc.text(`Payment Status: ${latestOrder.paymentStatus}`, 10, doc.lastAutoTable.finalY + 30);
+    let cursorY = doc.lastAutoTable.finalY + 10;
+    doc.text(`Subtotal: ${formatCurrency(order.totalAmount + discountAmount - shippingFee)}`, 10, cursorY);
+    cursorY += 6;
+    if (discountAmount > 0) {
+      doc.text(`Discount: -${formatCurrency(discountAmount)} (${order.couponCode || 'Coupon'})`, 10, cursorY);
+      cursorY += 6;
+    }
+    if (shippingFee > 0) {
+      doc.text(`Shipping: ${formatCurrency(shippingFee)}`, 10, cursorY);
+      cursorY += 6;
+    }
+    doc.text(`Total Amount: ${formatCurrency(order.totalAmount)}`, 10, cursorY);
+    cursorY += 6;
+    doc.text(`Amount Paid: ${formatCurrency(amountPaid)}`, 10, cursorY);
+    cursorY += 6;
+    doc.text(`Payment Mode: ${paymentMode}`, 10, cursorY);
+    cursorY += 6;
+    doc.text(`Payment Status: ${order.paymentStatus}`, 10, cursorY);
+    cursorY += 10;
     doc.setFontSize(10);
-    doc.text("Thank you for shopping with us!", 10, doc.lastAutoTable.finalY + 40);
+    doc.text('Thank you for shopping with us!', 10, cursorY);
 
     doc.save(`ShopTop_Receipt_${Date.now()}.pdf`);
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
+        <Typography color="error" textAlign="center">{error}</Typography>
+      </Box>
+    );
+  }
+
+  if (!order) {
+    return (
+      <Box sx={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
+        <Typography>No recent order found.</Typography>
+      </Box>
+    );
+  }
 
   return (
     <motion.div
@@ -91,64 +164,80 @@ const ThankYouPage = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <Box sx={{ maxWidth: 800, mx: 'auto', mt: 1, p: 3 }}>
-        <Paper elevation={4} sx={{
-          p: 4,
-          borderRadius: 3,
-          textAlign: 'center',
-          background: 'linear-gradient(to right, #ffffff, #f9f9f9)',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.05)'
-        }}>
-          <Typography variant="h4" fontWeight={600} gutterBottom>
+      <Box sx={{ maxWidth: 900, mx: 'auto', mt: 4, p: { xs: 2, md: 4 } }}>
+        <Paper
+          elevation={6}
+          sx={{
+            p: { xs: 3, md: 5 },
+            borderRadius: 4,
+            background: 'linear-gradient(135deg, #ffffff, #f5f7fb)',
+            boxShadow: '0 20px 50px rgba(15,23,42,0.12)',
+          }}
+        >
+          <Typography variant="h4" fontWeight={700} gutterBottom>
             🎉 Thank You for Your Order!
           </Typography>
-          <Typography color="text.secondary" mb={3}>
-            We’ve received your order placed on {new Date(order.date).toLocaleString()}
+          <Typography color="text.secondary" mb={2}>
+            Order placed on {orderDate}
           </Typography>
 
-          <Typography variant="subtitle2" gutterBottom>
-            To: {user?.name}
+          <Chip
+            label={order.paymentStatus || 'Pending'}
+            color={(order.paymentStatus || '').toLowerCase() === 'paid' ? 'success' : 'warning'}
+            sx={{ fontWeight: 600, textTransform: 'uppercase' }}
+          />
+
+          <Typography variant="subtitle2" mt={3} gutterBottom>
+            Shipping to
+          </Typography>
+          <Typography variant="h6" fontWeight={600}>
+            {user?.name}
           </Typography>
           <Typography variant="body2" color="text.secondary" gutterBottom>
             {order.address || 'No address provided'}
           </Typography>
 
-          <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 3 }} />
 
-          {order.items.map((item, i) => (
-            <Typography key={i}>
-              {item.name} × {item.quantity} — ₹{item.price * item.quantity}
-            </Typography>
-          ))}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {order.items.map((item, i) => (
+              <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 500 }}>
+                <Typography>
+                  {item.name} × {item.quantity}
+                </Typography>
+                <Typography>{formatCurrency(item.price * item.quantity)}</Typography>
+              </Box>
+            ))}
+          </Box>
 
-          <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 3 }} />
 
-          <Typography fontWeight={600} fontSize="1.1rem">
-            Total Payment: ₹{order.total.toFixed(2)}
-          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Typography>Subtotal: {formatCurrency(order.totalAmount + discountAmount - shippingFee)}</Typography>
+            {discountAmount > 0 && (
+              <Typography color="success.main">
+                Discount ({order.couponCode || 'Coupon'}): -{formatCurrency(discountAmount)}
+              </Typography>
+            )}
+            {shippingFee > 0 && <Typography>Shipping: {formatCurrency(shippingFee)}</Typography>}
+            <Typography fontWeight={600}>Total Amount: {formatCurrency(order.totalAmount)}</Typography>
+            <Typography fontWeight={600}>Amount Paid: {formatCurrency(amountPaid)}</Typography>
+            <Typography color="text.secondary">Payment Mode: {paymentMode}</Typography>
+          </Box>
 
-          <Typography fontWeight={600} fontSize="1.1rem">
-            Total Paid: ₹{order.paymentStatus === 'Paid' ? order.total.toFixed(2) : '0.00'}
-          </Typography>
-
-          <Typography mt={1} fontSize="1rem" color={order.paymentStatus === 'Paid' ? 'green' : 'orange'}>
-            {order.paymentStatus === 'Paid'
-              ? '✅ Payment Completed via Razorpay'
-              : '💰 Payment Pending - Pay on Delivery'}
-          </Typography>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 3, gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 4, gap: 2 }}>
             <Button
               variant="outlined"
               onClick={generatePDF}
               sx={{
-                borderColor: '#1976d2',
-                color: '#1976d2',
+                borderColor: '#111827',
+                color: '#111827',
                 fontWeight: 600,
                 px: 4,
                 py: 1.2,
                 borderRadius: 2,
-                textTransform: 'none'
+                textTransform: 'none',
+                width: { xs: '100%', sm: 'auto' },
               }}
               startIcon={<DescriptionIcon />}
             >
@@ -159,13 +248,14 @@ const ThankYouPage = () => {
               variant="contained"
               onClick={() => (window.location.href = '/products')}
               sx={{
-                background: 'linear-gradient(135deg, rgb(29,31,151), rgb(65,97,238))',
+                background: 'linear-gradient(135deg, #111827, #4338ca)',
                 color: 'white',
                 fontWeight: 600,
                 px: 4,
                 py: 1.2,
                 borderRadius: 2,
-                textTransform: 'none'
+                textTransform: 'none',
+                width: { xs: '100%', sm: 'auto' },
               }}
               startIcon={<ShoppingCartIcon />}
             >
@@ -176,6 +266,6 @@ const ThankYouPage = () => {
       </Box>
     </motion.div>
   );
-};
+}
 
 export default ThankYouPage;

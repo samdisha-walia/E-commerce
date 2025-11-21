@@ -13,12 +13,32 @@ const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select('-password');
+
+    const userId = decoded.id || decoded._id || decoded.userId || decoded.uid;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Invalid token payload" });
+    }
+
+    req.user = await User.findById(userId).select("-password");
+
+    if (!req.user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
     next();
   } catch (error) {
     res.status(401).json({ message: "Not authorized, token failed" });
   }
 };
+
+const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+  next();
+};
+
 
 // Named export
 const authMiddleware = (req, res, next) => {
@@ -45,5 +65,6 @@ const authMiddleware = (req, res, next) => {
 // Correct way to export multiple
 module.exports = {
   protect,
-  authMiddleware
+  authMiddleware,
+  requireAdmin,
 };

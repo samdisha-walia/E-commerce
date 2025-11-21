@@ -3,16 +3,22 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './App.css';
 import './i18n';
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+
 
 import { CartProvider } from './context/CartContext';
-import { CustomThemeProvider } from './context/ThemeContext';
+import {  ThemeModeProvider } from './context/ThemeContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
+    <ThemeModeProvider>
     <CartProvider>
-      <CustomThemeProvider>
+      
         <App />
-      </CustomThemeProvider>
+      
     </CartProvider>
+    </ThemeModeProvider>
   </React.StrictMode>
 );

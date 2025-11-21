@@ -1,7 +1,7 @@
 
 # 🛒 Full Stack E-commerce Web App – React + Node.js + MongoDB
 
-A fully functional **E-commerce platform** built using **React**, **Node.js**, **Express**, and **MongoDB**. This application supports user authentication, product listings, cart management, order tracking, and an admin dashboard – all within a responsive, mobile-friendly UI.
+A fully functional **E-commerce platform** built using **React**, **Node.js**, **Express**, and **MongoDB**, now enhanced with an **AI-powered chatbot** to assist users with product recommendations, order queries, and support. This application supports user authentication, product listings, cart management, order tracking, and an admin dashboard – all within a responsive, mobile-friendly UI.
 
 ---
 
@@ -11,6 +11,7 @@ A fully functional **E-commerce platform** built using **React**, **Node.js**, *
 ✅ Product catalog with filtering and category views  
 ✅ JWT-based user authentication and authorization  
 ✅ Shopping cart with quantity management  
+✅ AI Chatbot powered by Ollama (local LLM)
 ✅ Secure checkout and order tracking  
 ✅ Admin dashboard for managing products and orders  
 ✅ RESTful API built with Express.js  
@@ -26,6 +27,7 @@ A fully functional **E-commerce platform** built using **React**, **Node.js**, *
 | **Backend**   | Node.js, Express.js           |
 | **Database**  | MongoDB, Mongoose             |
 | **Authentication** | JWT, bcrypt             |
+| **AI Model** | Ollama (local LLM)             |
 | **Other**     | dotenv, concurrently          |
 
 ---
@@ -53,11 +55,11 @@ cd E-commerce-App
 ### 🔙 Set Up the Backend
 
 ```bash
-cd server
+cd backend
 npm install
 ```
 
-Create a `.env` file inside the `server/` directory with:
+Create a `.env` file inside the `backend/` directory with:
 
 ```env
 PORT=5000
@@ -76,12 +78,22 @@ npm run dev
 ### 🖥️ Set Up the Frontend
 
 ```bash
-cd client
+cd vite-frontend
 npm install
 npm start
 ```
 
 Visit `http://localhost:3000` in your browser to explore the frontend.
+
+---
+### 🤖 Start the AI Model (Chatbot)
+Run the selected Ollama model in a separate terminal:
+
+```bash
+ollama run llama3
+
+```
+
 
 ---
 

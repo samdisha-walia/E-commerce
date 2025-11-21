@@ -109,7 +109,7 @@ ollama run llama3
 
 ## 🌱 Future Enhancements
 
-* 🛒 Razorpay/Stripe payment gateway integration
+
 * 🗂️ Product reviews and ratings
 * ✉️ Email confirmation & notifications
 * 🌍 Deployment on Render + Vercel/Netlify
